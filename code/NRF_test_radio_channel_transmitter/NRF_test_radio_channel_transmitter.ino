@@ -7,8 +7,8 @@
 #define CE_PIN 0 // D3 (chip enable)
 
 //Variable con la dirección del canal por donde se va a transmitir
-byte direccion[5] ={'c','a','n','a','l'};
-
+uint64_t CLIENT_ADDRESS = 507;
+uint64_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 //creamos el objeto radio (NRF24L01)
 RF24 radio(CE_PIN, CSN_PIN);
 
@@ -28,7 +28,7 @@ void setup()
   radio.setRetries(1,10); // delay, count
 
   //Abrimos un canal de escritura
-  radio.openWritingPipe(direccion);
+  radio.openWritingPipe(SERVER_ADDRESS);
 
 
   //stop the readings

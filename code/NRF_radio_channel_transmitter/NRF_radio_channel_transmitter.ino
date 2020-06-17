@@ -26,8 +26,9 @@ int pir_state = 0; // save the pir status
 int magnet_state = 0; // save the magnet status
 unsigned long current_millis = 0;
 unsigned long previous_millis = 0;
-uint64_t CLIENT_ADDRESS = 1;
-uint64_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
+
+uint32_t CLIENT_ADDRESS = 506;
+uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 
 
 // The states are defined as:
@@ -49,22 +50,29 @@ void setup()
   digitalWrite(PIR_PIN, LOW);   
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);   
+  
   Serial.println(">> Configurtion finished");
+  char string_address[12];         //the ASCII of the integer will be stored in this char array
+  ultoa(SERVER_ADDRESS, string_address, 10); //(integer, yourBuffer, base)
+  Serial.print(">> Address: ");
+  Serial.println(string_address);
   
   //inicializamos el NRF24L01 
   radio.begin();
 
+  //radio.setDataRate( RF24_250KBPS );
+  radio.setPALevel(RF24_PA_MAX);
+  radio.setRetries(10,10); // delay, count
+
   //Abrimos un canal de escritura
   radio.openWritingPipe(SERVER_ADDRESS);
-
-  radio.setPALevel(RF24_PA_MIN);
 
   //stop the readings
   radio.stopListening();
 
   //turn on the switch:
-  //while (!set_on(true)){} //send until received
-  set_on(true);//send once
+  while (!set_on(true)){} //send until received
+  //set_on(true);//send once
  
 }
  
@@ -73,11 +81,11 @@ void loop()
 
   // blink twice and start the sending
   digitalWrite(LED_BUILTIN, LOW);   
-  delay(200);
+  delay(50);
   digitalWrite(LED_BUILTIN, HIGH);  
-  delay(200);
+  delay(50);
   digitalWrite(LED_BUILTIN, LOW); 
-  delay(500);
+  delay(100);
 
 
   // measure and print the state of the sensors
@@ -90,8 +98,8 @@ void loop()
 
   switch (state) {
     case 0:
-      //while (!set_on(false)){}//loop indefinitevly until the message is sended
-      set_on(false); //just send once
+      while (!set_on(false)){}//loop indefinitevly until the message is sended
+      //set_on(false); //just send once
       state = 4; // go to iddle
       Serial.println(">> Going to sleep mode and leaving the switch OFF");
       //ESP.deepSleep(0, WAKE_RF_DEFAULT); // the argument time is in us (0 means forever)
@@ -99,8 +107,12 @@ void loop()
     case 1:
       // waiting for a closed door
       if(magnet_state == HIGH){
-        state = 2;
-        previous_millis = millis();
+        delay(3000);//this delay os for the pir time
+        //if after the wait the magnet is still on high change state
+        if(magnet_state == HIGH){
+          state = 2;
+          previous_millis = millis();
+        }
       }
       break;
     case 2:
@@ -108,18 +120,36 @@ void loop()
       current_millis = millis();
       if(pir_state == HIGH){
         // movement has been detected
+
+        //blink for one second
+        digitalWrite(LED_BUILTIN, HIGH); 
+        delay(1000);
+        digitalWrite(LED_BUILTIN, LOW); 
+        delay(1000);
         state = 3;
       }else if (current_millis - previous_millis>= interval_milis) {
         // the time has passed while on this state
+        
+        //blink for two second
+        digitalWrite(LED_BUILTIN, HIGH); 
+        delay(2000);
+        digitalWrite(LED_BUILTIN, LOW); 
+        delay(2000);
         state = 0;
-      }else{
+
+      // or the door was opened again:
+      }else if (magnet_state  == LOW){
+        //set_on(true); //just send once
+        state = 1;  
+      }
+      else{
         Serial.print(">> Waiting time or movement. current time: ");
         Serial.println(current_millis - previous_millis);
       }
       break;
     case 3:
-      //while (!set_on(true)){}//loop indefinitevly until the message is sended
-      set_on(true); //just send once
+      while (!set_on(true)){}//loop indefinitevly until the message is sended
+      //set_on(true); //just send once
       Serial.println(">> Going to sleep mode and leaving the switch ON");
       state = 4; // go to iddle
       //ESP.deepSleep(1e6, WAKE_RF_DEFAULT); // the argument time is in us (0 means forever)
@@ -128,7 +158,8 @@ void loop()
     case 4:
       // if the door is opened
       if (magnet_state  == LOW){
-        set_on(true); //just send once
+        while (!set_on(true)){}//loop indefinitevly until the message is sended
+        //set_on(true); //just send once
         state = 1;  
       }
       Serial.println(">> waiting an opened door... ");
@@ -160,5 +191,6 @@ bool set_on(bool set_on){
     Serial.println(">> Error sending message");
   }
   // Send a message to manager_server
-return message_sended;
+  delay(1200);
+  return message_sended;
 }

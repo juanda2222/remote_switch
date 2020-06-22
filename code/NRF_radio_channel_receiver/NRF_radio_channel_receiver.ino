@@ -28,10 +28,10 @@ uint8_t saved_state;
 RF24 radio(CE_PIN, CSN_PIN);
 
 //vector para los datos recibidos
-char datos[4]="";
+char datos[4]="    3";
 
 //Variable con la dirección del canal que se va a leer
-uint32_t CLIENT_ADDRESS = 506;
+uint32_t CLIENT_ADDRESS = 502;
 uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 
 
@@ -66,6 +66,8 @@ void setup()
   //manual configuration of the used pins
   pinMode(BUTTON_ON_PIN, INPUT);
   pinMode(BUTTON_OFF_PIN, INPUT);
+  digitalWrite(BUTTON_OFF_PIN, HIGH);
+  digitalWrite(BUTTON_ON_PIN, HIGH);
   pinMode(LED_PIN, OUTPUT);
   pinMode(RELAY_LED_PIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
@@ -89,18 +91,20 @@ void loop() {
  //check if a button was pressed, action the relay and save the state
  int on_button = digitalRead(BUTTON_ON_PIN);
  int off_button = digitalRead(BUTTON_OFF_PIN);
- if (on_button == HIGH){
+ //Serial.println(on_button);
+ //Serial.println(off_button);
+  if (on_button == LOW){
     EEPROM.write(direccionEEPROM, 1);
     Serial.println(">> Switch turned ON");
     digitalWrite(RELAY_LED_PIN, HIGH);
     digitalWrite(RELAY_PIN, HIGH);
-    delay(500)
- } else if (off_button == HIGH) {
+    delay(500);
+ } else if (off_button ==LOW ) {
     EEPROM.write(direccionEEPROM, 0);
     Serial.println(">> Switch turned OFF");
     digitalWrite(RELAY_LED_PIN, LOW);
     digitalWrite(RELAY_PIN, LOW);
-    delay(500)
+    delay(500);
  }
  
  if ( radio.available(1) )
@@ -119,13 +123,13 @@ void loop() {
      delay(150);
 
      if(strcmp((const char *)datos, "on") == 0){
-        EEPROM.write(direccionEEPROM, 1);
+        //EEPROM.write(direccionEEPROM, 1);
         Serial.println(">> Switch turned ON");
         digitalWrite(RELAY_LED_PIN, HIGH);
         digitalWrite(RELAY_PIN, HIGH);
         
       }else if(strcmp((const char *)datos, "off") == 0){
-        EEPROM.write(direccionEEPROM, 0);
+        //EEPROM.write(direccionEEPROM, 0);
         Serial.println(">> Switch turned OFF");
         digitalWrite(RELAY_LED_PIN, LOW);
         digitalWrite(RELAY_PIN, LOW);

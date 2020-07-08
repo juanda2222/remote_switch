@@ -2,7 +2,9 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
- #include <EEPROM.h> //libreria para el manejo de la eprom
+#include <EEPROM.h> //libreria para el manejo de la eprom
+
+#include <string.h>
 
  
 //Declaremos los pines CE y el CSN
@@ -19,7 +21,6 @@
 #define RELAY_PIN 3 // D3
 
 
-
 //EEPROM vars:
 int direccionEEPROM; //tiene 1k de direcciones internas
 uint8_t saved_state;
@@ -28,11 +29,21 @@ uint8_t saved_state;
 RF24 radio(CE_PIN, CSN_PIN);
 
 //vector para los datos recibidos
-char datos[4]="    3";
+char datos[4]="";
 
 //Variable con la dirección del canal que se va a leer
-uint32_t CLIENT_ADDRESS = 502;
+uint32_t CLIENT_ADDRESS = 507;
 uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
+
+
+//mensajes constantes:
+const char MESSAGE_CONFIG_FINISHED[] = ">> Configurtion finished";
+const char MESSAGE_ADDRESS[] = ">> Address: ";
+const char MESSAGE_SWITCH_ON[] = ">> Switch turned ON";
+const char MESSAGE_SWITCH_OFF[] = ">> Switch turned OFF";
+const char MESSAGE_NO_RADIO_DATA[] = "-- No radio data";
+const char MESSAGE_NOT_RECOGNIZED[] = "-- Message not recognized";
+
 
 
 void setup()
@@ -44,10 +55,10 @@ void setup()
   //inicializamos el puerto serie
   Serial.begin(9600); 
   
-  Serial.println(">> Configurtion finished");
+  Serial.println(MESSAGE_CONFIG_FINISHED);
   char string_address[12];         //the ASCII of the integer will be stored in this char array
   ultoa(SERVER_ADDRESS, string_address, 10); //(integer, yourBuffer, base)
-  Serial.print(">> Address: ");
+  Serial.print(MESSAGE_ADDRESS);
   Serial.println(SERVER_ADDRESS);
   
   //inicializamos el NRF24L01 
@@ -85,7 +96,7 @@ void setup()
 }
  
 void loop() {
- uint8_t numero_canal;
+ //uint8_t numero_canal;
  //if ( radio.available(&numero_canal) )
 
  //check if a button was pressed, action the relay and save the state
@@ -95,25 +106,25 @@ void loop() {
  //Serial.println(off_button);
   if (on_button == LOW){
     EEPROM.write(direccionEEPROM, 1);
-    Serial.println(">> Switch turned ON");
+    Serial.println(MESSAGE_SWITCH_ON);
     digitalWrite(RELAY_LED_PIN, HIGH);
     digitalWrite(RELAY_PIN, HIGH);
     delay(500);
  } else if (off_button ==LOW ) {
     EEPROM.write(direccionEEPROM, 0);
-    Serial.println(">> Switch turned OFF");
+    Serial.println(MESSAGE_SWITCH_OFF);
     digitalWrite(RELAY_LED_PIN, LOW);
     digitalWrite(RELAY_PIN, LOW);
     delay(500);
  }
  
- if ( radio.available(1) )
+ if ( radio.available() )
  {
      //Leemos los datos y los guardamos en la variable datos[]
-     radio.read(datos,sizeof(datos));
+     radio.read(&datos, sizeof(datos));
 
      //reportamos por el puerto serial los datos recibidos
-     Serial.print("Datos= " );
+     Serial.print("Datos= ");
      Serial.println(datos);
 
      //blink once to indicate a received message
@@ -122,26 +133,26 @@ void loop() {
      digitalWrite(LED_PIN, LOW);
      delay(150);
 
-     if(strcmp((const char *)datos, "on") == 0){
-        //EEPROM.write(direccionEEPROM, 1);
-        Serial.println(">> Switch turned ON");
+     if(strcmp((char *)datos, "on") == 0){
+        EEPROM.write(direccionEEPROM, 1);
+        Serial.println(MESSAGE_SWITCH_ON);
         digitalWrite(RELAY_LED_PIN, HIGH);
         digitalWrite(RELAY_PIN, HIGH);
         
-      }else if(strcmp((const char *)datos, "off") == 0){
-        //EEPROM.write(direccionEEPROM, 0);
-        Serial.println(">> Switch turned OFF");
+      }else if(strcmp((char *)datos, "off") == 0){
+        EEPROM.write(direccionEEPROM, 0);
+        Serial.println(MESSAGE_SWITCH_OFF);
         digitalWrite(RELAY_LED_PIN, LOW);
         digitalWrite(RELAY_PIN, LOW);
         
       }else{
-        Serial.println("-- Message not recognized");
+        Serial.println(MESSAGE_NOT_RECOGNIZED);
       }
      
  }
  else
  {
-     Serial.println("No hay datos de radio disponibles");
+     Serial.println(MESSAGE_NO_RADIO_DATA);
  }
  delay(100);
 }

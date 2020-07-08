@@ -27,7 +27,7 @@ int magnet_state = 0; // save the magnet status
 unsigned long current_millis = 0;
 unsigned long previous_millis = 0;
 
-uint32_t CLIENT_ADDRESS = 506;
+uint32_t CLIENT_ADDRESS = 507;
 uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 
 

@@ -32,7 +32,7 @@ RF24 radio(CE_PIN, CSN_PIN);
 char datos[4]="";
 
 //Variable con la dirección del canal que se va a leer
-uint32_t CLIENT_ADDRESS = 507;
+uint32_t CLIENT_ADDRESS = 504;
 uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 
 

@@ -27,7 +27,7 @@ int magnet_state = 0; // save the magnet status
 unsigned long current_millis = 0;
 unsigned long previous_millis = 0;
 
-uint32_t CLIENT_ADDRESS = 507;
+uint32_t CLIENT_ADDRESS = 504;
 uint32_t SERVER_ADDRESS = 1000000 - CLIENT_ADDRESS; // 255 is the broadcast address 
 
 
@@ -59,19 +59,16 @@ void setup()
   
   //inicializamos el NRF24L01 
   radio.begin();
-
   //radio.setDataRate( RF24_250KBPS );
   radio.setPALevel(RF24_PA_MAX);
   radio.setRetries(10,10); // delay, count
-
   //Abrimos un canal de escritura
   radio.openWritingPipe(SERVER_ADDRESS);
-
   //stop the readings
   radio.stopListening();
 
   //turn on the switch:
-  while (!set_on(true)){} //send until received
+  reliable_set_on(true, 20);
   //set_on(true);//send once
  
 }
@@ -98,7 +95,7 @@ void loop()
 
   switch (state) {
     case 0:
-      while (!set_on(false)){}//loop indefinitevly until the message is sended
+      reliable_set_on(false, 20);
       //set_on(false); //just send once
       state = 4; // go to iddle
       Serial.println(">> Going to sleep mode and leaving the switch OFF");
@@ -139,7 +136,7 @@ void loop()
 
       // or the door was opened again:
       }else if (magnet_state  == LOW){
-        //set_on(true); //just send once
+        reliable_set_on(true, 4);
         state = 1;  
       }
       else{
@@ -148,7 +145,7 @@ void loop()
       }
       break;
     case 3:
-      while (!set_on(true)){}//loop indefinitevly until the message is sended
+      reliable_set_on(true, 20);
       //set_on(true); //just send once
       Serial.println(">> Going to sleep mode and leaving the switch ON");
       state = 4; // go to iddle
@@ -158,7 +155,7 @@ void loop()
     case 4:
       // if the door is opened
       if (magnet_state  == LOW){
-        while (!set_on(true)){}//loop indefinitevly until the message is sended
+        reliable_set_on(true, 20);
         //set_on(true); //just send once
         state = 1;  
       }
@@ -173,6 +170,8 @@ void loop()
   Serial.println(state);
   //delay(1000);
 }
+
+
 
 bool set_on(bool set_on){
 
@@ -193,4 +192,27 @@ bool set_on(bool set_on){
   // Send a message to manager_server
   delay(1200);
   return message_sended;
+}
+
+bool reliable_set_on(bool to_on, int num_retries){
+
+  for (int i = 0; i < num_retries; i++){
+
+    //failed to deliver, reconfigure driver
+    if (!set_on(to_on)){
+      Serial.println(">> Reconfiguring driver");
+      //inicializamos el NRF24L01 
+      radio.begin();
+      //radio.setDataRate( RF24_250KBPS );
+      radio.setPALevel(RF24_PA_MAX);
+      radio.setRetries(10,10); // delay, count
+      //Abrimos un canal de escritura
+      radio.openWritingPipe(SERVER_ADDRESS);
+      //stop the readings
+      radio.stopListening();
+    }else{
+      i = num_retries;
+    }
+  }
+  Serial.println(">> Retries exeeded");  
 }
